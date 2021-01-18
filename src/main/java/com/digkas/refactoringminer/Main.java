@@ -6,6 +6,9 @@ package com.digkas.refactoringminer;
 import java.io.*;
 import java.util.*;
 
+import com.google.gson.Gson;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jgit.lib.Repository;
@@ -69,6 +72,11 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 
+		Gson gson = new Gson();
+		Unirest.setTimeouts(0, 0);
+		InterestIndicatorsResponseEntity response = gson.fromJson(Unirest.get("http://195.251.210.147:7070/interestIndicators/search?projectID=jcommander&language=java")
+				.asJson().getBody().toString(), InterestIndicatorsResponseEntity.class);
+
 		GitService gitService = new GitServiceImpl();
 
 		GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
@@ -91,13 +99,12 @@ public class Main {
 					return;
 
 				commitSumContr = 0.0;
-				double rnd = new Random().nextDouble() * 2 - 1;
-				refactorings.forEach(r -> commitSumContr += rnd);
+				refactorings.forEach(r -> r.getInvolvedClassesAfterRefactoring().forEach(c -> commitSumContr += getFileInterest(response, c.getLeft())));
 
 				refactorings.forEach(r -> {
 					r.getInvolvedClassesAfterRefactoring()
 							.forEach(c -> output.append(String.format("%s\t%s\t%s\t%s\t%g\t%s\n", commitId, c.getLeft(), "Refactoring",
-									METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire", rnd, r.getRefactoringType().toString())));
+									METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire", getFileInterest(response, c.getLeft()), r.getRefactoringType().toString())));
 				});
 				compound(commitId, output);
 			}
@@ -131,9 +138,22 @@ public class Main {
 		System.exit(0);
 	}
 
+	private static double getFileInterest(InterestIndicatorsResponseEntity response, String file) {
+		try {
+			if (response != null) {
+				return response.getInterestIndicators().getRows()
+						.stream()
+						.filter(row -> row.getName().equals(file))
+						.findFirst()
+						.get().getInterest();
+			}
+		} catch (Exception ignored) {}
+		return 0.0;
+	}
+
 	public static List<String> readCSV() throws IOException {
 		List<String> revisions = new ArrayList<>();
-		Reader in = new FileReader("C:/Users/Dimitris/Desktop/Zeppelin2.csv");
+		Reader in = new FileReader("Zeppelin2.csv");
 		Iterable<CSVRecord> records = CSVFormat.TDF
 				.withFirstRecordAsHeader()
 				.parse(in);
