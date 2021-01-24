@@ -87,6 +87,8 @@ public class Main {
 
 		StringBuilder output = new StringBuilder();
 
+		response.getInterestIndicators().getRows().forEach(row -> System.out.println(row.getName() + "\t" + row.getInterest()));
+
 //		List<String> hasRefactorings = new ArrayList<>();
 //		hasRefactorings.add("\tHas Refactorings");
 
@@ -100,6 +102,12 @@ public class Main {
 
 				commitSumContr = 0.0;
 				refactorings.forEach(r -> r.getInvolvedClassesAfterRefactoring().forEach(c -> commitSumContr += getFileInterest(response, c.getLeft())));
+
+				refactorings.forEach(r -> {
+					r.getInvolvedClassesAfterRefactoring()
+							.forEach(c -> System.out.println(String.format("%s\t%s\t%s\t%s\t%g\t%s\n", commitId, c.getLeft(), "Refactoring",
+									METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire", getFileInterest(response, c.getLeft()), r.getRefactoringType().toString())));
+				});
 
 				refactorings.forEach(r -> {
 					r.getInvolvedClassesAfterRefactoring()
@@ -143,7 +151,7 @@ public class Main {
 			if (response != null) {
 				return response.getInterestIndicators().getRows()
 						.stream()
-						.filter(row -> row.getName().equals(file))
+						.filter(row -> file.toLowerCase().contains(row.getName().toLowerCase()+".java"))
 						.findFirst()
 						.get().getInterest();
 			}
