@@ -6,16 +6,14 @@ package com.digkas.refactoringminer;
 import java.io.*;
 import java.util.*;
 
+import com.digkas.refactoringminer.api.InterestIndicatorsResponseEntity;
 import com.google.gson.Gson;
 import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jgit.lib.Repository;
 import org.refactoringminer.api.GitHistoryRefactoringMiner;
 import org.refactoringminer.api.GitService;
-import org.refactoringminer.api.Refactoring;
-import org.refactoringminer.api.RefactoringHandler;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 import org.refactoringminer.util.GitServiceImpl;
 
@@ -28,43 +26,6 @@ public class Main {
 	private static final String GIT_SERVICE_URL = "https://github.com/";
 	private static final String OWNER = "cbeust";
 	private static final String REPOSITORY = "jcommander";
-
-	private static Set<String> METHOD_REFACTORINGS = new HashSet<String>(){{
-		add("EXTRACT_OPERATION");
-		add("PULL_UP_OPERATION");
-		add("PUSH_DOWN_OPERATION");
-		add("EXTRACT_AND_MOVE_OPERATION");
-		add("MOVE_AND_RENAME_OPERATION");
-		add("MOVE_AND_INLINE_OPERATION");
-		add("CHANGE_RETURN_TYPE");
-		add("CHANGE_VARIABLE_TYPE");
-		add("CHANGE_PARAMETER_TYPE");
-		add("PARAMETERIZE_VARIABLE");
-		add("MERGE_VARIABLE");
-		add("MERGE_PARAMETER");
-		add("SPLIT_VARIABLE");
-		add("SPLIT_PARAMETER");
-		add("ADD_PARAMETER");
-		add("REMOVE_PARAMETER");
-	}};
-
-	private static Set<String> CLASS_REFACTORINGS = new HashSet<String>(){{
-		add("MOVE_ATTRIBUTE");
-		add("REPLACE_ATTRIBUTE");
-		add("PULL_UP_ATTRIBUTE");
-		add("PUSH_DOWN_ATTRIBUTE");
-		add("EXTRACT_SUPERCLASS");
-		add("EXTRACT_INTERFACE");
-		add("EXTRACT_SUBCLASS");
-		add("EXTRACT_CLASS");
-		add("MOVE_RENAME_CLASS");
-		add("CHANGE_ATTRIBUTE_TYPE");
-		add("EXTRACT_ATTRIBUTE");
-		add("MOVE_RENAME_ATTRIBUTE");
-		add("REPLACE_VARIABLE_WITH_ATTRIBUTE");
-		add("MERGE_ATTRIBUTE");
-		add("SPLIT_ATTRIBUTE");
-	}};
 
 	/**
 	 * @param args
@@ -92,37 +53,9 @@ public class Main {
 //		List<String> hasRefactorings = new ArrayList<>();
 //		hasRefactorings.add("\tHas Refactorings");
 
-		miner.detectAll(repo, "master", new RefactoringHandler() {
-			double commitSumContr;
-			@Override
-			public void handle(String commitId, List<Refactoring> refactorings) {
-
-				if (refactorings.isEmpty())
-					return;
-
-				commitSumContr = 0.0;
-				refactorings.forEach(r -> r.getInvolvedClassesAfterRefactoring().forEach(c -> commitSumContr += getFileInterest(response, c.getLeft())));
-
-				refactorings.forEach(r -> {
-					r.getInvolvedClassesAfterRefactoring()
-							.forEach(c -> System.out.println(String.format("%s\t%s\t%s\t%s\t%g\t%s\n", commitId, c.getLeft(), "Refactoring",
-									METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire", getFileInterest(response, c.getLeft()), r.getRefactoringType().toString())));
-				});
-
-				refactorings.forEach(r -> {
-					r.getInvolvedClassesAfterRefactoring()
-							.forEach(c -> output.append(String.format("%s\t%s\t%s\t%s\t%g\t%s\n", commitId, c.getLeft(), "Refactoring",
-									METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire", getFileInterest(response, c.getLeft()), r.getRefactoringType().toString())));
-				});
-				compound(commitId, output);
-			}
-
-			private void compound(String commitId, StringBuilder output){
-				output.append(String.format("%s\t%s\t%s\t%s\t%s\n", commitId, "Compound", "Refactoring", "Compound", String.valueOf(commitSumContr)));
-			}
-		});
+		miner.detectAll(repo, "master", new CustomRefactoringHandler(response));
 //		commits.forEach(commit -> {
-//			miner.detectAtCommit(repo, commit, new RefactoringHandler() {
+//			miner.detectAtCommit(repo, commit, new CustomRefactoringHandler() {
 //				@Override
 //				public void handle(String commitId, List<Refactoring> refactorings) {
 //					if (!refactorings.isEmpty())
@@ -144,19 +77,6 @@ public class Main {
 		writeCSV(output);
 
 		System.exit(0);
-	}
-
-	private static double getFileInterest(InterestIndicatorsResponseEntity response, String file) {
-		try {
-			if (response != null) {
-				return response.getInterestIndicators().getRows()
-						.stream()
-						.filter(row -> file.toLowerCase().contains(row.getName().toLowerCase()+".java"))
-						.findFirst()
-						.get().getInterest();
-			}
-		} catch (Exception ignored) {}
-		return 0.0;
 	}
 
 	public static List<String> readCSV() throws IOException {
