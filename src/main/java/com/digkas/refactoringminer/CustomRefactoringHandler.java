@@ -1,6 +1,6 @@
 package com.digkas.refactoringminer;
 
-import com.digkas.refactoringminer.api.InterestIndicatorsResponseEntity;
+import com.digkas.refactoringminer.api.interest.InterestIndicatorsResponseEntity;
 import org.refactoringminer.api.Refactoring;
 import org.refactoringminer.api.RefactoringHandler;
 
@@ -54,7 +54,7 @@ public class CustomRefactoringHandler extends RefactoringHandler {
     }
 
     private void compound(String commitId, String type){
-        Globals.output.append(String.format("%s\t%s\t%s\t%s\t%s\n", commitId, "Compound", "Refactoring", "Compound", String.valueOf(refactoringInterestContr)));
+        Globals.output.append(String.format("%s\t%s\t%s\t%s\t%s\n", commitId, "Compound", type, "Compound", String.valueOf(refactoringInterestContr)));
     }
 
 //    private double getFilePrincipal(InterestIndicatorsResponseEntity response, String file) {

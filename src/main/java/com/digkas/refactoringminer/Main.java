@@ -6,7 +6,7 @@ package com.digkas.refactoringminer;
 import java.io.*;
 import java.util.*;
 
-import com.digkas.refactoringminer.api.InterestIndicatorsResponseEntity;
+import com.digkas.refactoringminer.api.interest.InterestIndicatorsResponseEntity;
 import com.google.gson.Gson;
 import com.mashape.unirest.http.Unirest;
 import org.apache.commons.csv.CSVFormat;

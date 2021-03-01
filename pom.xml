@@ -51,6 +51,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+
 		<dependency>
 			<groupId>com.github.tsantalis</groupId>
 			<artifactId>refactoring-miner</artifactId>
