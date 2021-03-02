@@ -9,7 +9,7 @@ import com.google.gson.annotations.SerializedName;
  * @author George Digkas <digasgeo@gmail.com>
  *
  */
-public class CustomStudyResponseEntity {
+public class PrincipalResponseEntity {
 
 	@SerializedName("sha")
 	@Expose
