@@ -5,7 +5,6 @@ package com.digkas.refactoringminer;
 
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import com.digkas.refactoringminer.api.interest.InterestIndicatorsResponseEntity;
 import com.digkas.refactoringminer.api.principal.PrincipalResponseEntity;
@@ -18,9 +17,6 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jgit.lib.Repository;
 import org.refactoringminer.api.GitHistoryRefactoringMiner;
-import org.refactoringminer.api.GitService;
-import org.refactoringminer.api.Refactoring;
-import org.refactoringminer.api.RefactoringHandler;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
 import org.refactoringminer.util.GitServiceImpl;
 
@@ -40,36 +36,14 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		InterestIndicatorsResponseEntity interestResponse = getInterestApiResponse();
-
-		PrincipalResponseEntity[] principalResponse = Objects.requireNonNull(getPrincipalApiResponse());
-
-		GitService gitService = new GitServiceImpl();
-
+		Repository repo = cloneRepository();
 		GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
+//		PrincipalResponseEntity[] principalResponse = Objects.requireNonNull(getPrincipalApiResponse());
+//		InterestIndicatorsResponseEntity interestResponse = getInterestApiResponse();
+		InterestIndicatorsResponseEntity interestResponse = null; // tmp
+		PrincipalResponseEntity[] principalResponse = null; // tmp
 
-		Repository repo = gitService.cloneIfNotExists("C:/Users/Dimitris/Desktop/" + REPOSITORY, GIT_SERVICE_URL + OWNER + "/" + REPOSITORY);
-
-		List<String> commits = readCSV();
-
-		StringBuilder output = new StringBuilder();
-
-//		interestResponse
-//				.getInterestIndicators()
-//				.getRows()
-//				.forEach(row -> System.out.println(row.getName() + "\t" + row.getInterest()));
-
-		List<String> hasRefactorings = new ArrayList<>();
-		hasRefactorings.add("\tHas Refactorings");
-
-//		miner.detectAll(repo, "master", new CustomRefactoringHandler(principalResponse, interestResponse));
-		miner.detectAll(repo, "master", new RefactoringHandler() {
-			@Override
-			public void handle(String commitId, List<Refactoring> refactorings) {
-				if (!refactorings.isEmpty())
-					refactorings.forEach(r -> r.rightSide().forEach(co -> System.out.println("CommitId: " + commitId + " | File: " + co.getFilePath() + " | Start Line: " + co.getStartLine() + " | End Line: " + co.getEndLine())));
-			}
-		});
+		List<String> commits = Objects.requireNonNull(getCommitIds());
 
 //		commits.forEach(commit -> {
 //			miner.detectAtCommit(repo, commit, new RefactoringHandler() {
@@ -93,11 +67,15 @@ public class Main {
 //			});
 //		} );
 
-//		addColumn("C:/Users/Dimitris/Desktop/", "Zeppelin2.csv", hasRefactorings);
+		commits
+				.forEach(commit -> miner.detectAtCommit(repo, commit, new CustomRefactoringHandler(principalResponse, interestResponse)));
 
-		writeCSV(output);
-
+		writeCSV();
 		System.exit(0);
+	}
+
+	private static Repository cloneRepository() throws Exception {
+		return new GitServiceImpl().cloneIfNotExists("C:/Users/Dimitris/Desktop/" + REPOSITORY, GIT_SERVICE_URL + OWNER + "/" + REPOSITORY);
 	}
 
 	private static List<String> readCSV() throws IOException {
@@ -110,20 +88,32 @@ public class Main {
 		return revisions;
 	}
 
-	private static void writeCSV(StringBuilder out) throws IOException {
+	private static void writeCSV() throws IOException {
 
-		FileWriter csvWriter = new FileWriter("C:/Users/Dimitris/Desktop/new.csv");
+		FileWriter csvWriter = new FileWriter("C:/Users/Dimitris/Desktop/neww.csv");
 		csvWriter.append("CommitId\t");
 		csvWriter.append("InvolvedFile\t");
 		csvWriter.append("TypeOfChange\t");
 		csvWriter.append("Granularity\t");
+		csvWriter.append("TDContributionPrincipal\t");
 		csvWriter.append("TDContributionInterest\t");
 		csvWriter.append("Comment\n");
 
-		csvWriter.append(out);
+		csvWriter.append(Globals.output);
 
 		csvWriter.flush();
 		csvWriter.close();
+	}
+
+	private static List<String> getCommitIds() {
+		HttpResponse<JsonNode> httpResponse = null;
+		Unirest.setTimeouts(0, 0);
+		try {
+			httpResponse = Unirest.get("http://195.251.210.147:8989/api/dzisis/commits?url=https://github.com/apache/commons-io").asJson();
+		} catch (UnirestException e) {
+			e.printStackTrace();
+		}
+		return Objects.nonNull(httpResponse) ? Arrays.asList(new Gson().fromJson(httpResponse.getBody().toString(), String[].class)) : null;
 	}
 
 	private static InterestIndicatorsResponseEntity getInterestApiResponse() {
