@@ -127,14 +127,13 @@ public class CustomRefactoringHandler extends RefactoringHandler {
                     newCodeInterestContr += 0.0; // tmp
                     String granularity = "";
                     String comment = "";
-                    String file = "";
+                    String file = diffEntry.getNewFilePath();
                     if (diffEntry.getChangeType().equals("ADD")) {
-                        file = diffEntry.getNewFilePath();
                         granularity = "Entire";
                         comment = diffEntry.getChangeType();
                     }
                     else if (method.getClassifier().endsWith("Insert")) {
-                        file = diffEntry.getNewFilePath() + " - " + method.getName();
+                        file += " - " + method.getName();
                         granularity = "Method";
                         comment = method.getClassifier();
                     }
