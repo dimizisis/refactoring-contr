@@ -1,8 +1,8 @@
 package com.digkas.refactoringminer;
 
-import com.digkas.refactoringminer.api.interest.InterestIndicatorsResponseEntity;
-import com.digkas.refactoringminer.api.principal.DiffEntry;
-import com.digkas.refactoringminer.api.principal.PrincipalResponseEntity;
+import com.digkas.refactoringminer.entities.interest.InterestIndicatorsResponseEntity;
+import com.digkas.refactoringminer.entities.principal.DiffEntry;
+import com.digkas.refactoringminer.entities.principal.PrincipalResponseEntity;
 import com.google.gson.Gson;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
@@ -25,7 +25,15 @@ public class CustomRefactoringHandler extends RefactoringHandler {
     private Map<String, List<List<Integer>>> refactoredFiles;
     private InterestIndicatorsResponseEntity interestResponse;
     private PrincipalResponseEntity[] principalResponse;
-    List<DiffEntry> diffEntries;
+    private List<DiffEntry> diffEntries;
+
+    public CustomRefactoringHandler() {
+        this.refactoringInterestContr = 0.0;
+        this.refactoringPrincipalContr = 0.0;
+        this.newCodeInterestContr = 0.0;
+        this.newCodePrincipalContr = 0.0;
+        this.refactoredFiles = new HashMap<>();
+    }
 
     public CustomRefactoringHandler(PrincipalResponseEntity[] principalResponse, InterestIndicatorsResponseEntity interestResponse) {
         this.interestResponse = interestResponse;
@@ -50,24 +58,22 @@ public class CustomRefactoringHandler extends RefactoringHandler {
         refactorings
                 .stream()
                 .filter(r -> Globals.CLASS_REFACTORINGS.contains(r.getRefactoringType().toString()) || Globals.METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()))
-                .forEach(r -> {
-                    r.getInvolvedClassesAfterRefactoring()
-                            .forEach(c -> {
-                                r.rightSide().forEach(codeRange -> {
-                                    List<List<Integer>> codeRangeLst = new ArrayList<>(Collections.singletonList(new ArrayList<>(Arrays.asList(codeRange.getStartLine(), codeRange.getEndLine()))));
-                                    refactoredFiles.put(codeRange.getFilePath(), codeRangeLst);
-                                    printMethodPrincipalContr(commitId, c.getLeft(), codeRangeLst, r.getRefactoringType().toString());
-                                });
-//                        refactoringInterestContr += getFileInterest(c.getLeft()); // to modify (apply contribution's formula)
-                                refactoringInterestContr = 0.0; // tmp
-                                print(commitId,
-                                        c.getLeft(),
-                                        "Refactoring",
-                                        Globals.METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire",
-                                        refactoringPrincipalContr, refactoringInterestContr,
-                                        r.getRefactoringType().toString());
+                .forEach(r -> r.getInvolvedClassesAfterRefactoring()
+                        .forEach(c -> {
+                            r.rightSide().forEach(codeRange -> {
+                                List<List<Integer>> codeRangeLst = new ArrayList<>(Collections.singletonList(new ArrayList<>(Arrays.asList(codeRange.getStartLine(), codeRange.getEndLine()))));
+                                refactoredFiles.put(codeRange.getFilePath(), codeRangeLst);
+                                printMethodPrincipalContr(commitId, c.getLeft(), codeRangeLst, r.getRefactoringType().toString());
                             });
-                });
+//                        refactoringInterestContr += getFileInterest(c.getLeft()); // to modify (apply contribution's formula)
+                            refactoringInterestContr = 0.0; // tmp
+                            print(commitId,
+                                    c.getLeft(),
+                                    "Refactoring",
+                                    Globals.METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "Method" : "Entire",
+                                    refactoringPrincipalContr, refactoringInterestContr,
+                                    r.getRefactoringType().toString());
+                        }));
 
 //        if (refactoringPrincipalContr == 0.0 && refactoringInterestContr == 0.0)
 //            return;
@@ -148,8 +154,8 @@ public class CustomRefactoringHandler extends RefactoringHandler {
     }
 
     private void print(String commitId, String file, String type, String granularity, Double principalContribution, Double interestContribution, String comment) {
-        System.out.printf("%s\t%s\t%s\t%s\t%g\t%g\t%s\n", commitId, file, type, granularity, principalContribution, interestContribution, comment);
-        Globals.output.append(String.format("%s\t%s\t%s\t%s\t%g\t%g\t%s\n", commitId, file, type, granularity, principalContribution, interestContribution, comment));
+//        System.out.printf("%s\t%s\t%s\t%s\t%g\t%g\t%s\n", commitId, file, type, granularity, principalContribution, interestContribution, comment);
+        Globals.append(String.format("%s\t%s\t%s\t%s\t%g\t%g\t%s\n", commitId, file, type, granularity, principalContribution, interestContribution, comment));
     }
 
     private List<DiffEntry> getDiffEntriesAtCommit(String commitId) {

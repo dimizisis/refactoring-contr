@@ -1,5 +1,5 @@
 
-package com.digkas.refactoringminer.api.interest;
+package com.digkas.refactoringminer.entities.interest;
 
 import java.util.List;
 

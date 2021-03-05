@@ -2,6 +2,7 @@ package com.digkas.refactoringminer;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Dimitrios Zisis <zdimitris@outlook.com>
@@ -9,6 +10,8 @@ import java.util.Set;
  */
 public final class Globals {
     static StringBuilder output;
+    static String[] outputHeaders;
+    static AtomicInteger progress = new AtomicInteger(0);
     static Set<String> METHOD_REFACTORINGS;
     static Set<String> CLASS_REFACTORINGS;
     static {
@@ -50,6 +53,20 @@ public final class Globals {
             add("SPLIT_ATTRIBUTE");
         }};
 
+        outputHeaders = new String[]{
+                "CommitId\t",
+                "InvolvedFile\t",
+                "TypeOfChange\t",
+                "Granularity\t",
+                "TDContributionPrincipal\t",
+                "TDContributionInterest\t",
+                "Comment\n"
+        };
+
         output = new StringBuilder();
     }
+
+    public synchronized static void increaseProgress() { progress.incrementAndGet(); }
+
+    public synchronized static void append(String s) { output.append(s); }
 }

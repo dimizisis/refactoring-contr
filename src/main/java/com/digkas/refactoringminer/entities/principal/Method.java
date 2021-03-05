@@ -1,4 +1,4 @@
-package com.digkas.refactoringminer.api.principal;
+package com.digkas.refactoringminer.entities.principal;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
