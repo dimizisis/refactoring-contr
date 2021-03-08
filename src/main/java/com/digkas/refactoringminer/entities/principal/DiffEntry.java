@@ -23,6 +23,9 @@ public class DiffEntry {
 	@SerializedName("methods")
 	@Expose
 	private List<Method> methods = null;
+	@SerializedName("fileContribution")
+	@Expose
+	private Double fileContribution;
 
 	public String getOldFilePath() {
 		return oldFilePath;
@@ -35,6 +38,10 @@ public class DiffEntry {
 	public String getNewFilePath() {
 		return newFilePath;
 	}
+
+	public Double getFileContribution() { return fileContribution; }
+
+	public void setFileContribution(Double fileContribution) { this.fileContribution = fileContribution; }
 
 	public void setNewFilePath(String newFilePath) {
 		this.newFilePath = newFilePath;
