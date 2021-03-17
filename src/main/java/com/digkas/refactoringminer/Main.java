@@ -35,18 +35,18 @@ public class Main {
 		GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
 		List<String> commits = Objects.requireNonNull(getCommitIds());
 
-		Thread progressThread = new Thread(new ProgressReport(commits.size()));
-		progressThread.start();
+//		Thread progressThread = new Thread(new ProgressReport(commits.size()));
+//		progressThread.start();
 
 		commits
-				.parallelStream()
 				.forEach(commit -> {
 					miner.detectAtCommit(repo, commit, new CustomRefactoringHandler());
 					Globals.increaseProgress();
 				});
 		writeCSV();
-		progressThread.join();
+//		progressThread.join();
 		System.exit(0);
+
 	}
 
 	private static Repository cloneRepository() throws Exception {
@@ -55,7 +55,7 @@ public class Main {
 
 	private static void writeCSV() throws IOException {
 
-		FileWriter csvWriter = new FileWriter("C:/Users/Dimitris/Desktop/neww_parallel.csv");
+		FileWriter csvWriter = new FileWriter("C:/Users/Dimitris/Desktop/commons-io.csv");
 
 		for (String header : Globals.outputHeaders)
 			csvWriter.append(header);

@@ -17,12 +17,6 @@ public final class Globals {
     static {
 
         METHOD_REFACTORINGS = new HashSet<String>() {{
-            add("EXTRACT_OPERATION");
-            add("PULL_UP_OPERATION");
-            add("PUSH_DOWN_OPERATION");
-            add("EXTRACT_AND_MOVE_OPERATION");
-            add("MOVE_AND_RENAME_OPERATION");
-            add("MOVE_AND_INLINE_OPERATION");
             add("CHANGE_RETURN_TYPE");
             add("CHANGE_VARIABLE_TYPE");
             add("CHANGE_PARAMETER_TYPE");
@@ -36,6 +30,9 @@ public final class Globals {
         }};
 
         CLASS_REFACTORINGS = new HashSet<String>() {{
+            add("PUSH_DOWN_OPERATION");
+            add("EXTRACT_OPERATION");
+            add("PULL_UP_OPERATION");
             add("MOVE_ATTRIBUTE");
             add("REPLACE_ATTRIBUTE");
             add("PULL_UP_ATTRIBUTE");
@@ -48,6 +45,9 @@ public final class Globals {
             add("CHANGE_ATTRIBUTE_TYPE");
             add("EXTRACT_ATTRIBUTE");
             add("MOVE_RENAME_ATTRIBUTE");
+            add("EXTRACT_AND_MOVE_OPERATION");
+            add("MOVE_AND_RENAME_OPERATION");
+            add("MOVE_AND_INLINE_OPERATION");
             add("REPLACE_VARIABLE_WITH_ATTRIBUTE");
             add("MERGE_ATTRIBUTE");
             add("SPLIT_ATTRIBUTE");
