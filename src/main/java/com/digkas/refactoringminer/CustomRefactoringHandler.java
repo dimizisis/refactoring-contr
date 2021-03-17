@@ -9,6 +9,8 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import gr.uom.java.xmi.diff.CodeRange;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.refactoringminer.api.Refactoring;
 import org.refactoringminer.api.RefactoringHandler;
 
@@ -25,7 +27,6 @@ public class CustomRefactoringHandler extends RefactoringHandler {
     private Double refactoringPrincipalContr;
     private Double newCodeInterestContr;
     private Double newCodePrincipalContr;
-    private Double newCodePrincipalAddContr;
     private Map<String, List<List<Integer>>> refactoredFiles;
     private InterestIndicatorsResponseEntity interestResponse;
     private PrincipalResponseEntity[] principalResponse;
@@ -36,7 +37,6 @@ public class CustomRefactoringHandler extends RefactoringHandler {
         this.refactoringPrincipalContr = 0.0;
         this.newCodeInterestContr = 0.0;
         this.newCodePrincipalContr = 0.0;
-        this.newCodePrincipalAddContr = 0.0;
         this.refactoredFiles = new HashMap<>();
     }
 
@@ -47,7 +47,6 @@ public class CustomRefactoringHandler extends RefactoringHandler {
         this.refactoringPrincipalContr = 0.0;
         this.newCodeInterestContr = 0.0;
         this.newCodePrincipalContr = 0.0;
-        this.newCodePrincipalAddContr = 0.0;
         this.refactoredFiles = new HashMap<>();
     }
 
@@ -64,38 +63,34 @@ public class CustomRefactoringHandler extends RefactoringHandler {
     }
 
     private void printRefactoringContr(String commitId, List<Refactoring> refactorings) {
-        refactorings
-                .stream()
-                .filter(r -> Globals.CLASS_REFACTORINGS.contains(r.getRefactoringType().toString()) || Globals.METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()))
-                .forEach(r -> r.getInvolvedClassesAfterRefactoring()
-                        .forEach(c -> {
-                            r.rightSide().forEach(codeRange -> {
-                                List<List<Integer>> codeRangeLst = new ArrayList<>(Collections.singletonList(new ArrayList<>(Arrays.asList(codeRange.getStartLine(), codeRange.getEndLine()))));
-                                refactoredFiles.put(codeRange.getFilePath(), codeRangeLst);
-                                printMethodPrincipalContr(commitId, c.getLeft(), codeRangeLst, r.getRefactoringType().toString());
-                            });
-//                        refactoringInterestContr += getFileInterest(c.getLeft()); // to modify (apply contribution's formula)
-                            refactoringInterestContr = 0.0; // tmp
-                            print(commitId,
-                                    c.getLeft(),
-                                    "REFACTORING",
-                                    Globals.METHOD_REFACTORINGS.contains(r.getRefactoringType().toString()) ? "METHOD" : "ENTIRE",
-                                    refactoringPrincipalContr, refactoringInterestContr,
-                                    r.getRefactoringType().toString());
-                        }));
+        boolean printCompound = false;
+        for (Refactoring r : refactorings) {
+            for (ImmutablePair<String, String> c : r.getInvolvedClassesAfterRefactoring()) {
+                for (CodeRange codeRange : r.rightSide()) {
+                    List<List<Integer>> codeRangeLst = new ArrayList<>(Collections.singletonList(new ArrayList<>(Arrays.asList(codeRange.getStartLine(), codeRange.getEndLine()))));
+                    refactoredFiles.put(codeRange.getFilePath(), codeRangeLst);
+                    if (printMethodPrincipalContr(commitId, c.getLeft(), codeRangeLst, r.getRefactoringType().toString()))
+                        printCompound = true;
+//                    refactoringInterestContr += getFileInterest(c.getLeft()); // to modify (apply contribution's formula)
+                    refactoringInterestContr = 0.0; // tmp
+                }
+            }
+        }
 
         /* print compounded */
-        print(commitId, "COMPOUND", "REFACTORING", "COMPOUND", refactoringPrincipalContr, refactoringInterestContr, "");
+        if (printCompound)
+            print(commitId, "COMPOUND", "REFACTORING", "COMPOUND", refactoringPrincipalContr, refactoringInterestContr, "");
     }
 
-    private void printMethodPrincipalContr(String commitId, String file, List<List<Integer>> codeRanges, String refactoringType) {
+    private boolean printMethodPrincipalContr(String commitId, String file, List<List<Integer>> codeRanges, String refactoringType) {
+        boolean printCompound = false;
         try {
             if (Objects.nonNull(diffEntries)) {
-
                 for (DiffEntry diffEntry : diffEntries) {
                     if (diffEntry.getNewFilePath().equals(file)) {
                         if (Objects.nonNull(diffEntry.getFileContribution()) && !diffEntry.getFileContribution().isNaN()) {
                             refactoringPrincipalContr += diffEntry.getFileContribution();
+                            printCompound = true;
                             print(commitId,
                                     file,
                                     "REFACTORING",
@@ -110,14 +105,15 @@ public class CustomRefactoringHandler extends RefactoringHandler {
                             if (codeRanges.stream().anyMatch(codeRange -> method.getStartLine() >= codeRange.get(0) && method.getEndLine() <= codeRange.get(1))) {
                                 if (Objects.nonNull(method.getContribution()) && !method.getContribution().isNaN()) {
                                     refactoringPrincipalContr += method.getContribution();
-                                    if (Globals.METHOD_REFACTORINGS.contains(refactoringType)) {
+//                                    if (Globals.METHOD_REFACTORINGS.contains(refactoringType)) {
+                                        printCompound = true;
                                         print(commitId,
                                                 file + " - " + method.getName(),
                                                 "REFACTORING",
                                                 "METHOD",
                                                 method.getContribution(), refactoringInterestContr,
                                                 refactoringType);
-                                    }
+//                                    }
                                 }
                             }
                         }
@@ -125,6 +121,7 @@ public class CustomRefactoringHandler extends RefactoringHandler {
                 }
             }
         } catch (Exception ignored) {}
+        return printCompound;
     }
 
     private void printNewCodeContr(String commitId) {
@@ -136,12 +133,10 @@ public class CustomRefactoringHandler extends RefactoringHandler {
         for (DiffEntry diffEntry : diffEntries) {
                 if (Objects.nonNull(diffEntry.getFileContribution())) {
                     newCodePrincipalContr += diffEntry.getFileContribution();
-                    if (diffEntry.getChangeType().equals("ADD"))
-                        newCodePrincipalAddContr += diffEntry.getFileContribution();
                     printCompound = true;
                     print(commitId,
                             diffEntry.getNewFilePath(),
-                            diffEntry.getChangeType(),
+                            "NEW_FILE",
                             "ENTIRE",
                             diffEntry.getFileContribution(), newCodeInterestContr,
                             diffEntry.getChangeType());
@@ -156,12 +151,11 @@ public class CustomRefactoringHandler extends RefactoringHandler {
                                 .filter(codeRange -> Objects.nonNull(codeRange.get(0)) && Objects.nonNull(codeRange.get(1)))
                                 .anyMatch(codeRange -> codeRange.get(0).equals(method.getStartLine()) && codeRange.get(1).equals(method.getEndLine())))
                             return;
-                        if (method.getClassifier().equals("ADD"))
-                            newCodePrincipalAddContr += method.getContribution();
                         newCodePrincipalContr += method.getContribution();
 //                    newCodeInterestContr += getFileInterest(method.getPath()); // to modify (apply contribution's formula)
                         newCodeInterestContr += 0.0; // tmp
                         String granularity = "";
+                        String changeType = diffEntry.getChangeType().equals("ADD") ? "NEW_FILE" : "NEW_METHOD";
                         String comment = "";
                         String file = diffEntry.getNewFilePath();
                         if (diffEntry.getChangeType().equals("ADD")) {
@@ -174,7 +168,7 @@ public class CustomRefactoringHandler extends RefactoringHandler {
                             comment = method.getClassifier();
                         }
                         printCompound = true;
-                        print(commitId, file, diffEntry.getChangeType(), granularity, method.getContribution(), newCodeInterestContr, comment);
+                        print(commitId, file, changeType, granularity, method.getContribution(), newCodeInterestContr, comment);
                     }
                 }
         }
@@ -182,8 +176,6 @@ public class CustomRefactoringHandler extends RefactoringHandler {
         /* print compounded */
         if (printCompound)
             print(commitId, "COMPOUND", "NEW", "COMPOUND", newCodePrincipalContr, newCodeInterestContr, "");
-        if (newCodePrincipalAddContr != 0.0)
-            print(commitId, "ADD-COMPOUND", "NEW", "ADD-COMPOUND", newCodePrincipalAddContr, 0.0, "");
     }
 
     private void print(String commitId, String file, String type, String granularity, Double principalContribution, Double interestContribution, String comment) {
