@@ -54,8 +54,7 @@ public class CustomRefactoringHandler extends RefactoringHandler {
     public void handle(String commitId, List<Refactoring> refactorings) {
         diffEntries = getDiffEntriesAtCommit(commitId);
         /* if refactoring list is not empty, print refactoring contribution, else only new code contribution is printed */
-        if (refactorings.stream().anyMatch(r -> Globals.CLASS_REFACTORINGS.contains(r.getRefactoringType().toString())
-                || Globals.CLASS_REFACTORINGS.contains(r.getRefactoringType().toString())))
+        if (!refactorings.isEmpty())
             printRefactoringContr(commitId, refactorings);
 
         if (Objects.nonNull(diffEntries) && !diffEntries.isEmpty())
