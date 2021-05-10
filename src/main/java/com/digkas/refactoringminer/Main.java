@@ -34,9 +34,11 @@ public class Main {
 		Repository repo = cloneRepository();
 		GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
 		List<String> commits = Objects.requireNonNull(getCommitIds());
+		// List<String> commits = new ArrayList<>();
+		// commits.add("55bae88d398feed4a3008ec5e97eb8b85c983b1e");
 
-//		Thread progressThread = new Thread(new ProgressReport(commits.size()));
-//		progressThread.start();
+		// Thread progressThread = new Thread(new ProgressReport(commits.size()));
+		// progressThread.start();
 
 		commits
 				.forEach(commit -> {
@@ -44,7 +46,7 @@ public class Main {
 					Globals.increaseProgress();
 				});
 		writeCSV();
-//		progressThread.join();
+		//progressThread.join();
 		System.exit(0);
 
 	}
