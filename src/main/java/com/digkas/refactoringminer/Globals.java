@@ -1,7 +1,5 @@
 package com.digkas.refactoringminer;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -20,6 +18,7 @@ public final class Globals {
                 "Granularity\t",
                 "TDContributionPrincipal\t",
                 "TDContributionInterest\t",
+                "TDContributionInterestPercentage\t",
                 "Comment\n"
         };
 

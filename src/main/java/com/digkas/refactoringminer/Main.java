@@ -6,10 +6,13 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.eclipse.jgit.lib.Repository;
 import org.refactoringminer.api.GitHistoryRefactoringMiner;
 import org.refactoringminer.rm1.GitHistoryRefactoringMinerImpl;
@@ -20,44 +23,67 @@ import org.refactoringminer.util.GitServiceImpl;
  *
  */
 public class Main {
-
-	private static final String GIT_SERVICE_URL = "https://github.com/";
-	private static final String OWNER = "apache";
-	private static final String REPOSITORY = "commons-io";
-
 	/**
 	 * @param args program arguments
 	 * @throws Exception possible exception thrown by repo cloning
 	 */
 	public static void main(String[] args) throws Exception {
 
-		Repository repo = cloneRepository();
+		BasicConfigurator.configure();
+		Logger.getRootLogger().setLevel(Level.OFF);
+
+		Unirest.config()
+				.socketTimeout(Integer.MAX_VALUE-1)
+				.connectTimeout(Integer.MAX_VALUE-1);
+
+		if (args.length < 3) {
+			System.out.println("Usage: java -jar RefactoringContribution.jar <Repo URL> <Clone Path> <Output File Path>");
+			System.exit(1);
+		}
+		String url = Objects.requireNonNull(args[0]);
+		String clonePath = Objects.requireNonNull(args[1]);
+		String outFilePath = Objects.requireNonNull(args[2]);
+		if (!outputPathIsDir(outFilePath)) {
+			System.out.println("Not a valid output file path provided");
+			System.exit(-1);
+		}
+		Repository repo = cloneRepository(url, clonePath);
 		GitHistoryRefactoringMiner miner = new GitHistoryRefactoringMinerImpl();
-		List<String> commits = Objects.requireNonNull(getCommitIds());
-		// List<String> commits = new ArrayList<>();
-		// commits.add("55bae88d398feed4a3008ec5e97eb8b85c983b1e");
+		List<String> commits = Objects.requireNonNull(getCommitIds(url));
+		Collections.reverse(commits);
+//		 List<String> commits = new ArrayList<>();
+//		 commits.add("e7e3907b1343f45b45a3742f0c7a5d103f383a28");
 
-		// Thread progressThread = new Thread(new ProgressReport(commits.size()));
-		// progressThread.start();
+		Thread progressThread = new Thread(new ProgressReport(commits.size()));
+		progressThread.start();
 
-		commits
-				.forEach(commit -> {
-					miner.detectAtCommit(repo, commit, new CustomRefactoringHandler());
-					Globals.increaseProgress();
-				});
-		writeCSV();
-		//progressThread.join();
+//		for (String commit : commits) {
+//			miner.detectAtCommit(repo, commit, new CustomRefactoringHandler(url));
+//			Globals.increaseProgress();
+//		}
+
+		 commits.parallelStream().forEach(commit -> {
+		 			miner.detectAtCommit(repo, commit, new CustomRefactoringHandler(url));
+		 			Globals.increaseProgress();
+		 		});
+
+		writeCSV(outFilePath);
+		progressThread.join();
 		System.exit(0);
 
 	}
 
-	private static Repository cloneRepository() throws Exception {
-		return new GitServiceImpl().cloneIfNotExists("C:/Users/Dimitris/Desktop/" + REPOSITORY, GIT_SERVICE_URL + OWNER + "/" + REPOSITORY);
+	private static boolean outputPathIsDir(String outFilePath) {
+		return new File(outFilePath).isDirectory();
 	}
 
-	private static void writeCSV() throws IOException {
+	private static Repository cloneRepository(String url, String clonePath) throws Exception {
+		return new GitServiceImpl().cloneIfNotExists(clonePath, url);
+	}
 
-		FileWriter csvWriter = new FileWriter("C:/Users/Dimitris/Desktop/commons-io.csv");
+	private static void writeCSV(String filePath) throws IOException {
+
+		FileWriter csvWriter = new FileWriter(filePath.replace("\\", "/") + "/out.csv");
 
 		for (String header : Globals.outputHeaders)
 			csvWriter.append(header);
@@ -67,11 +93,11 @@ public class Main {
 		csvWriter.close();
 	}
 
-	private static List<String> getCommitIds() {
+	private static List<String> getCommitIds(String url) {
 		HttpResponse<JsonNode> httpResponse = null;
-		Unirest.setTimeouts(0, 0);
+//		Unirest.setTimeouts(0, 0);
 		try {
-			httpResponse = Unirest.get("http://195.251.210.147:8989/api/dzisis/commits?url=https://github.com/apache/commons-io").asJson();
+			httpResponse = Unirest.get("http://195.251.210.147:8989/api/dzisis/commits?url=" + url).asJson();
 		} catch (UnirestException e) {
 			e.printStackTrace();
 		}
